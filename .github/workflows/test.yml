@@ -21,11 +21,17 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Set up Python
-        run: uv python install 3.13
+      - name: Create the virtual environment
+        # Installing into a venv rather than with `uv pip install --system`: the
+        # runner's system Python is externally managed (PEP 668), so a --system
+        # install is refused. Putting .venv/bin on PATH lets later steps call the
+        # tools directly.
+        run: |
+          uv venv --python 3.13
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
-        run: uv pip install --system -e ".[dev]"
+        run: uv pip install -e ".[dev]"
 
       - name: Ruff lint
         run: ruff check .
@@ -35,3 +41,53 @@ jobs:
 
       - name: Pytest
         run: pytest -q
+
+  image:
+    name: Build image
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: cv-matching:ci
+          # ignore-error keeps a cache write failure from failing the build:
+          # Dependabot pull requests run with a read-only token, and this job must
+          # stay green for exactly the base-image bumps it exists to check.
+          cache-from: type=gha,scope=buildkit_ci
+          cache-to: type=gha,mode=max,scope=buildkit_ci,ignore-error=true
+
+      - name: Smoke test the image
+        # Builds are not enough on their own: a base image bump can produce an
+        # image that builds and then fails to start. Credentials here are dummies -
+        # startup only validates that they are present, it makes no outbound call.
+        run: |
+          docker run -d --name cvm -p 8000:8000 \
+            -e AZURE__ENDPOINT=https://example.invalid/ \
+            -e AZURE__KEY=dummy \
+            -e CV_MATCHING_LITELLM__URL=https://example.invalid/v1 \
+            -e CV_MATCHING_LITELLM__API_KEY=dummy \
+            -e AUTH__API_KEY=dummy \
+            cv-matching:ci
+
+          for _ in $(seq 1 30); do
+            if curl -sf localhost:8000/cv-matching/health >/dev/null; then break; fi
+            sleep 2
+          done
+
+          curl -sf localhost:8000/cv-matching/health
+          curl -sf localhost:8000/cv-matching/ready
+          test "$(curl -s -o /dev/null -w '%{http_code}' \
+            -X POST localhost:8000/cv-matching/api/v1/match)" = "401"
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs cvm || true

@@ -17,7 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/).
 - Standalone packaging: `pyproject.toml`, `Dockerfile`, `docker-compose.yml`, `docker-bake.hcl`,
   `.env.example`
 - Helm chart `deploy/charts/cv-matching`
-- CI workflows: `Test` (ruff + pytest), `Build Image`, `Publish Chart`
+- CI workflows: `Test` (ruff + pytest, plus an image build and container smoke test),
+  `Build Image`, `Publish Chart`
 - Documentation: README, architecture, API specifications, requirements, test plan
 
 ### Changed
@@ -27,6 +28,11 @@ adheres to [Semantic Versioning](https://semver.org/).
 - Ruff rule set pinned explicitly so a ruff upgrade cannot turn a clean tree red
 
 ### Fixed
+- CI installs into a virtual environment instead of `uv pip install --system`. The runner's
+  system Python is externally managed (PEP 668), so the system install was refused outright
+- The Dockerfile no longer hardcodes `/usr/local/lib/python3.13/site-packages`. Dependencies are
+  installed into a venv at a fixed path, so a base-image Python bump no longer breaks the build.
+  Verified against both `python:3.13-slim` and `python:3.14-slim`
 - Helm probes now render. The chart this was derived from passed `livenessProbe` / `readinessProbe`
   without the `enabled` key that `tplchart` requires, so both were silently dropped
 

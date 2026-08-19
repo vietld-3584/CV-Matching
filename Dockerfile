@@ -5,6 +5,13 @@ FROM python:3.13-slim AS base
 
 WORKDIR /app
 
+# Dependencies live in a venv at a fixed path, which the final stage copies whole.
+# The path carries no Python version, so bumping the base image needs no edit here -
+# the previous layout hardcoded /usr/local/lib/python3.13/site-packages and broke
+# silently on a minor version bump.
+ENV VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
+
 # Stage 2: Dependencies installation
 FROM base AS dependencies
 
@@ -14,16 +21,17 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml ./
 
 # Install Python dependencies using uv
-RUN uv pip install --system .
+RUN uv venv "$VIRTUAL_ENV" \
+    && uv pip install --no-cache .
 
 # Stage 3: Application
 FROM base AS application
 
-# Copy installed dependencies from previous stage
-COPY --from=dependencies /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=dependencies /usr/local/bin /usr/local/bin
+# Copy the prepared environment from the previous stage
+COPY --from=dependencies /opt/venv /opt/venv
 
-# Copy application code
+# Copy application code. WORKDIR is on sys.path, so `cv_matching` is imported
+# from here rather than from site-packages.
 COPY cv_matching/ ./cv_matching/
 COPY main.py ./
 
