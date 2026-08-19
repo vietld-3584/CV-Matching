@@ -1,0 +1,51 @@
+# OpenSSF Scorecard
+#
+# リポジトリのセキュリティプラクティスを継続的にスコアリングし、結果を
+# GitHub Code Scanning に連携する。社内 OSS リポジトリ セキュリティ設定ガイド
+# （サプライチェーン攻撃への対策 / コード解析）に準拠する。
+#
+# サードパーティ Action はすべてコミット SHA でピン留めしている。
+name: Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "0 0 * * 1" # 毎週月曜 00:00 UTC
+  push:
+    branches: [main]
+
+# デフォルトを最小権限（read-only）にし、必要な権限のみジョブで明示的に付与する。
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # SARIF を Code Scanning にアップロードするため
+      id-token: write # 公開スコアの公開（publish_results）に必要
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@84498526a009a99c875e83ef4821a8ba52de7c22 # codeql-bundle-v2.25.5
+        with:
+          sarif_file: results.sarif

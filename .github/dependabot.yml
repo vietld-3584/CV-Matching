@@ -1,0 +1,41 @@
+# Dependabot 設定
+#
+# 本リポジトリはアプリケーション依存（npm/Cargo 等）を持たないドキュメント/テンプレート
+# 配布リポジトリのため、GitHub Actions ワークフローで利用するアクションの更新を対象とする。
+# 設定方針は社内 OSS リポジトリ セキュリティ設定ガイド（Dependabot の運用）に準拠する。
+version: 2
+updates:
+  # ルートの GitHub Actions ワークフロー
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "auto-update"
+
+  # 配布テンプレート（web-development）内のワークフローテンプレート
+  - package-ecosystem: "github-actions"
+    directory: "/templates/web-development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "auto-update"
+      - "templates"

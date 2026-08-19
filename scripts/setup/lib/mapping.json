@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Q1〜Q3 → 取得すべき Agent / Command / MCP の対応表。メモランダム §5-2, §5-3 を反映。",
+  "always_get": {
+    "agents": ["researcher", "git-manager", "mcp-manager"],
+    "commands": ["feedback", "init-claude", "rate", "wrap-session"],
+    "skills": ["find-skill", "takumi", "research", "git", "bootstrap", "help"]
+  },
+  "role_to_agents": {
+    "PM": ["project-manager"],
+    "TechLead": [],
+    "Engineer": [],
+    "QA": [],
+    "Designer": [],
+    "DevOps": [],
+    "Other": []
+  },
+  "role_to_commands": {
+    "PM": ["run-retro"],
+    "TechLead": [],
+    "Engineer": [],
+    "QA": [],
+    "Designer": [],
+    "DevOps": [],
+    "Other": []
+  },
+  "role_to_skills": {
+    "PM": [],
+    "TechLead": [],
+    "Engineer": [],
+    "QA": [],
+    "Designer": [],
+    "DevOps": [],
+    "Other": []
+  },
+  "process_to_agents": {
+    "brainstorm": ["brainstormer"],
+    "requirement": ["planner"],
+    "basic-design": ["planner"],
+    "detail-design": ["planner"],
+    "implementation": ["implementer", "code-simplifier"],
+    "integration-test": ["tester"],
+    "review": ["reviewer"],
+    "debug": ["debugger"],
+    "deploy": ["deployer"],
+    "doc": ["doc-writer"],
+    "retro": ["journal-writer"],
+    "uiux": ["designer", "ui-ux-designer"]
+  },
+  "process_to_commands": {
+    "brainstorm": ["brainstorm"],
+    "requirement": ["create-plan"],
+    "basic-design": ["create-plan"],
+    "detail-design": ["create-plan"],
+    "implementation": ["clean-code", "ship"],
+    "integration-test": ["run-tests"],
+    "review": ["review-code"],
+    "debug": ["fix-bug"],
+    "deploy": ["deploy-app"],
+    "doc": ["manage-docs"],
+    "retro": ["write-journal"],
+    "uiux": []
+  },
+  "process_to_skills": {
+    "brainstorm": ["brainstorm"],
+    "requirement": ["create-plan"],
+    "basic-design": ["create-plan"],
+    "detail-design": ["create-plan"],
+    "implementation": ["clean-code", "ship"],
+    "integration-test": ["run-tests"],
+    "review": ["review-code"],
+    "debug": ["fix-bug"],
+    "deploy": ["deploy-app"],
+    "doc": ["manage-docs"],
+    "retro": ["write-journal"],
+    "uiux": []
+  },
+  "process_to_mcp": {
+    "integration-test": ["playwright"]
+  },
+  "always_keep_paths": [
+    ".claude/commands/setup-project.md",
+    ".claude/skills/project-setup",
+    ".claude/skills/_shared",
+    ".claude/skills/common",
+    ".claude/skills/find-skill",
+    ".claude/rules/primary-workflow.md",
+    ".claude/rules/orchestration-protocol.md",
+    ".claude/rules/development-rules.md",
+    ".claude/rules/team-coordination-rules.md",
+    ".claude/rules/documentation-management.md",
+    ".claude/schemas",
+    ".claude/session-state",
+    ".claude/templates",
+    ".claude/output-styles",
+    ".claude/settings.json",
+    ".claude/metadata.json",
+    ".claude/statusline.cjs"
+  ],
+  "always_remove_paths": [
+    ".claude/skills/agent-team",
+    ".claude/hooks/teammate-idle-handler.cjs"
+  ],
+  "remove_when_unselected": {
+    "momorph": [
+      ".claude/rules/momorph",
+      ".claude/skills/momorph-implement-design"
+    ],
+    "notifications_none": [
+      ".claude/hooks/notifications"
+    ]
+  }
+}

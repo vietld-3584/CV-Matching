@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "既知 MCP サーバーの定義雛形。write-configs.sh が .mcp.json 生成時にここから引いてマージする。Skill は自由記述で受けた MCP もここに無ければ会話で command/args を補完する。",
+  "servers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "env": {}
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["--yes", "@upstash/context7-mcp"],
+      "env": {}
+    },
+    "momorph": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@sunasteriskrnd/momorph-mcp@latest"],
+      "env": {},
+      "note": "momorph の正式な MCP コマンド名は実装時に takumi リポを参照して確認すること"
+    }
+  }
+}

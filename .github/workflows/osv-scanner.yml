@@ -1,0 +1,32 @@
+# OSV-Scanner
+#
+# Google が提供する言語非依存の脆弱性スキャナーで、リポジトリ内のロックファイルや
+# マニフェストを走査し、既知の脆弱性（OSV データベース）を検出する。
+# 社内 OSS リポジトリ セキュリティ設定ガイド（サプライチェーン攻撃への対策）に準拠する。
+#
+# 本リポジトリ自体はアプリ依存を持たないが、配布テンプレートに将来追加される
+# 依存定義や、リポジトリ運用上の依存を継続的にスキャンするために設定する。
+# サードパーティ Action はコミット SHA でピン留めしている。
+name: OSV-Scanner
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 0 * * 1" # 毎週月曜 00:00 UTC
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  scan:
+    permissions:
+      security-events: write # SARIF を Code Scanning にアップロードするため
+      contents: read
+      actions: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        --recursive
+        ./

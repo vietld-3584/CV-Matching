@@ -1,0 +1,22 @@
+.DS_Store
+
+### VS Code ###
+.vscode/
+
+### シークレット・認証情報 ###
+# 社内 OSS リポジトリ セキュリティ設定ガイド（シークレット・認証情報の管理）に準拠
+# 環境変数ファイル
+.env
+.env.*
+!.env.example
+
+# 秘密鍵・証明書
+*.pem
+*.key
+*.p12
+*.pfx
+
+# クラウド認証情報
+credentials.json
+service-account-key.json
+*-service-account*.json
