@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for the CV Matching service
 
 # Stage 1: Base Python image
-FROM python:3.13-slim AS base
+FROM python:3.14-slim AS base
 
 WORKDIR /app
 
