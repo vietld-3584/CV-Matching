@@ -1,33 +1,59 @@
-# 非機能要件一覧
+# Non-Functional Requirements
 
-> 本ドキュメントは、性能・可用性・セキュリティ等、機能要件以外にシステムが満たすべき品質基準を定義し、自社・クライアント双方で合意するためのものです。
-> 各要件はアーキテクチャ設計 [`../03_system-design/architecture.md`](../03_system-design/architecture.md) の設計方針・制約条件と対応付けてください。達成状況は [`../01_management/define-of-done.md`](../01_management/define-of-done.md) の完了判定に用いてください。
+> Non-functional requirements for the CV Matching service. Architecture:
+> [`../03_system-design/architecture.md`](../03_system-design/architecture.md).
 
-## 1. 非機能要件一覧
+## 1. Performance
 
-<!-- カテゴリごとに要件を記載。数値で定義できるものは目標値を明記してください -->
+| ID | Requirement | Target | Notes |
+| --- | --- | --- | --- |
+| NFR-001 | Full match latency | ~5–15s typical | 8 LLM calls; the six scorers run concurrently, so they cost roughly one round trip, not six |
+| NFR-002 | Extraction-only latency | ~3–5s typical | 1 OCR call + 1 LLM call |
+| NFR-003 | LLM call timeout | 90s | Deliberately under the proxy's 120s Cloudflare read cut-off so a slow call fails as our timeout, which retries can act on |
+| NFR-004 | LLM retries | 2 per call | Configurable 0–5 |
+| NFR-005 | Event loop | Never blocked | The Azure SDK is synchronous, so OCR runs on a worker thread |
 
-| ID | カテゴリ | 要件内容 | 目標値・基準 | 検証方法 | 優先度 | 更新日 |
-| --- | --- | --- | --- | --- | --- | --- |
-| NFR-001 | <!-- 例: 性能 --> | <!-- 例: 一覧画面の表示は3秒以内に完了すること --> | <!-- 例: 平均レスポンス3秒以内（99パーセンタイル5秒以内） --> | <!-- 例: 負荷テスト --> | 必須 | |
+## 2. Availability and scalability
 
-## 2. カテゴリの目安
-
-<!-- プロジェクトの特性に応じて追加・調整してください -->
-
-| カテゴリ | 説明 |
-| --- | --- |
-| 性能 | レスポンス速度、スループット、同時接続数等 |
-| 可用性 | 稼働率、障害時の復旧目標（RTO/RPO） |
-| セキュリティ | 認証・認可、通信暗号化、脆弱性対策、データ保護 |
-| 拡張性 | 将来の機能追加・トラフィック増加への対応力 |
-| 運用・保守性 | 監視、ログ、デプロイ容易性、障害調査のしやすさ |
-| 互換性 | 対応ブラウザ・OS・デバイス、既存システムとの互換性 |
-| 法令・規制 | 個人情報保護法、業界固有の規制・ガイドライン対応 |
-| データ管理 | バックアップ、データ保持期間、データ移行 |
-
-## 3. 改訂履歴
-
-| 日付 | 更新者 | 内容 |
+| ID | Requirement | Detail |
 | --- | --- | --- |
-| | | |
+| NFR-010 | Stateless | No database, no session state; any replica serves any request |
+| NFR-011 | Horizontal scaling | Scale by replica count; anti-affinity is set to `soft` |
+| NFR-012 | Liveness | `/cv-matching/health`, 30s interval |
+| NFR-013 | Readiness | `/cv-matching/ready`, 10s interval. Deliberately does not probe Azure or LiteLLM — that would remove the pod from rotation during a third-party outage |
+| NFR-014 | Graceful degradation | A failed insights call becomes a warning; the scores are still returned. A failed criterion scorer does not — Skills alone is 40%, so a silent 0 would read as a genuine rejection |
+
+## 3. Security
+
+| ID | Requirement | Detail |
+| --- | --- | --- |
+| NFR-020 | Authentication | `X-API-Key` header, compared with `hmac.compare_digest` in constant time |
+| NFR-021 | Secret management | All credentials via environment variables from a Kubernetes secret; none baked into the image; `.env` is git-ignored |
+| NFR-022 | Container hardening | Runs as non-root uid 1000, `runAsNonRoot: true` |
+| NFR-023 | Error disclosure | Internal errors return a generic message; tracebacks go to logs only |
+| NFR-024 | Data retention | Uploaded CVs are written to a temp file, read once, and deleted in a background task. Nothing is persisted |
+| NFR-025 | Dependency scanning | OSV-Scanner and OpenSSF Scorecard run in CI; Dependabot tracks updates |
+
+## 4. Maintainability
+
+| ID | Requirement | Detail |
+| --- | --- | --- |
+| NFR-030 | Architecture | Clean architecture; the domain layer imports no framework, no SDK and does no I/O |
+| NFR-031 | Testability | External systems sit behind ports; the suite runs with fakes, needing no credentials and no network |
+| NFR-032 | Test coverage | 38 tests over weighting, experience arithmetic, prompt rendering and failure handling |
+| NFR-033 | Lint | `ruff check` and `ruff format --check` clean; rule set pinned so a ruff upgrade cannot turn the tree red |
+| NFR-034 | API contract | Published as OpenAPI at `/openapi.json`, generated from the same Pydantic models used for validation, so docs cannot drift from behaviour |
+
+## 5. Observability
+
+| ID | Requirement | Detail |
+| --- | --- | --- |
+| NFR-040 | Metrics | Prometheus endpoint at `/cv-matching/metrics` |
+| NFR-041 | Logging | Structured stdout logging; each match logs elapsed time, candidate, score and recommendation |
+| NFR-042 | Request tracing | An `X-Request-ID` header is echoed back in error responses |
+
+## 6. Revision history
+
+| Date | Author | Change |
+| --- | --- | --- |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

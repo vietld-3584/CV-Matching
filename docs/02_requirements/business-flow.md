@@ -1,21 +1,52 @@
-# 業務フロー概要
+# Business Flow
 
-> 本ドキュメントは、本システムが対象とする主要な業務の流れを可視化するためのものです。サービスの背景・目的は [`project-overview.md`](./project-overview.md) を参照してください。
-> 個々の機能の詳細フロー（入出力・業務ルール等）は [`functions/`](./functions/function-1-xxx-yyy.md) 配下の各ファイルを参照してください。
+> How the CV Matching service fits into the screening process. Background:
+> [`project-overview.md`](./project-overview.md).
 
-## 1. 業務フロー概要
+## 1. Screening flow
 
-<!-- 主要な業務の流れをMermaid等で記載。複数の業務フローがある場合は見出しを分けて追加してください -->
+```mermaid
+flowchart TD
+    A[Job posting opens] --> B[Candidates apply<br/>CVs arrive]
+    B --> C[Recruiter uploads CV + JD<br/>via the hiring frontend]
+    C --> D[CV Matching API]
+    D --> E[Structured CV + score<br/>+ per-criterion reasoning]
+    E --> F{Recommendation}
+    F -->|SHORTLIST ≥70| G[Move to interview]
+    F -->|REVIEW_CAREFULLY ≥40| H[Recruiter reads<br/>the reasoning and decides]
+    F -->|REJECT <40| H
+    G --> I[Interview process]
+    H --> I
+    H --> J[Pass, with a recorded reason]
+```
+
+The recommendation is an input to a human decision, never a gate. Even a `REJECT` reaches a recruiter
+with its per-criterion explanations attached — the point is to order and justify the queue, not to
+close it.
+
+## 2. Where the value lands
+
+| Step | Before | With the service |
+| --- | --- | --- |
+| Reading a CV | Manual, minutes per candidate, formats vary | Seconds, normalised into one structure |
+| Ranking | Recruiter judgement, varies by reader and by fatigue | Consistent weighted score, reproducible on re-run |
+| Justification | Held in the recruiter's head | Per-criterion score, weight and written reason |
+| Adjusting priorities | Re-read everything with new emphasis | Re-weight criteria per request |
+
+## 3. Extraction-only flow
+
+Uploading a CV without a job description returns just the structured data — used to populate a
+candidate record when there is no specific posting to match against yet.
 
 ```mermaid
 flowchart LR
-    A[利用者] --> B[主要業務1]
-    B --> C[主要業務2]
-    C --> D[完了]
+    A[CV file] --> B[CV Matching API<br/>no jd_text]
+    B --> C[Structured CV data]
+    C --> D[Talent pool record]
 ```
 
-## 2. 改訂履歴
+## 4. Revision history
 
-| 日付 | 更新者 | 内容 |
+| Date | Author | Change |
 | --- | --- | --- |
-| | | |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

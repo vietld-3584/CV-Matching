@@ -1,27 +1,38 @@
-# 利用者ロール一覧
+# Role List
 
-> 本ドキュメントは、本システムを利用する利用者ロール（利用者区分）とその権限範囲を定義するためのものです。
-> 各ロールが利用する機能は [`function-list.md`](./function-list.md) の「対象ロール」欄と対応付けてください。画面ごとのアクセス制御は [`../04_screen-design/screen-list.md`](../04_screen-design/screen-list.md) にも反映してください。
+> Consumers of the CV Matching service and what they are permitted to do.
+> Functions: [`function-list.md`](./function-list.md).
 
-## 1. ロール一覧
+## 1. Roles
 
-<!-- システムを利用する全てのロールを記載。エンドユーザーだけでなく、管理者・運用担当等も含める -->
+This is a machine-to-machine API. It has **no per-user identity model**: authentication is a single
+shared API key, so the service authenticates the *calling system*, not the person behind the request.
+The roles below describe who is served through those systems.
 
-| ID | ロール名 | 説明 | 想定人数・規模 | 備考 |
-| --- | --- | --- | --- | --- |
-| ROLE-001 | <!-- 例: 一般利用者 --> | <!-- 例: サービスに登録し、基本機能を利用する利用者 --> | | |
-| ROLE-002 | <!-- 例: システム管理者 --> | <!-- 例: 利用者管理・マスタ管理を行う社内担当者 --> | | |
-
-## 2. 権限マトリクス
-
-<!-- ロール × 主要機能の権限を一覧化。機能ID（function-list.md）と対応付けてください -->
-
-| 機能ID | 機能名 | ROLE-001 | ROLE-002 |
+| ID | Role | Description | Access |
 | --- | --- | --- | --- |
-| F-001 | <!-- 例: 会員登録 --> | <!-- 例: 作成・閲覧 --> | <!-- 例: 閲覧・更新・削除 --> |
+| ROLE-001 | Hiring system / frontend | The application that uploads CVs and displays results. Holds the API key | Full API access via `X-API-Key` |
+| ROLE-002 | Recruiter (indirect) | Screens candidates through the hiring frontend. Never calls this API directly | Whatever the frontend exposes |
+| ROLE-003 | Platform operator | Deploys and operates the service | Health, readiness, metrics; secrets via Kubernetes |
+| ROLE-004 | Monitoring system | Scrapes metrics and probes | `/health`, `/ready`, `/metrics` — unauthenticated |
 
-## 3. 改訂履歴
+## 2. Permission matrix
 
-| 日付 | 更新者 | 内容 |
+| Function ID | Function | ROLE-001 | ROLE-003 | ROLE-004 |
+| --- | --- | --- | --- | --- |
+| F-001–F-008 | CV extraction and matching | ✅ | — | — |
+| F-009 | API key authentication | Holds the key | Rotates the key | — |
+| F-010 | Health / readiness / metrics | ✅ | ✅ | ✅ |
+
+## 3. Notes on authorisation
+
+- The API key is compared in constant time and grants all-or-nothing access; there is no scoping or
+  rate limiting inside the service.
+- Because the service authenticates a system rather than a person, any per-recruiter audit trail must
+  be kept by the caller. This service stores nothing.
+
+## 4. Revision history
+
+| Date | Author | Change |
 | --- | --- | --- |
-| | | |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

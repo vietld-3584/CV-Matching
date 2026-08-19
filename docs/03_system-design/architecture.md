@@ -1,86 +1,103 @@
-# アーキテクチャ設計
+# Architecture
 
-> 本ドキュメントは、本プロジェクトで採用するシステムアーキテクチャの全体像（主要コンポーネント・外部サービス連携・技術スタック）を、自社の開発チームおよびクライアント双方が正しく理解するためのものです。
-> データベースの詳細設計は [`database.md`](./database.md)、API の詳細仕様は [`api-design/api-list.md`](./api-design/api-list.md) を参照してください。本ファイルはシステム全体の構成と技術選定の根拠に特化します。
+> System architecture for the CV Matching service: components, external integrations, and the
+> reasoning behind the technology choices. API details live in
+> [`api-design/api-list.md`](./api-design/api-list.md). This service holds no database — see
+> [`database.md`](./database.md).
 
-## 1. 概要・設計方針
+## 1. Overview and design principles
 
-<!-- システムの全体像（モノリス/マイクロサービス、オンプレミス/クラウド等）と、設計上重視する方針（可用性・拡張性・セキュリティ・保守性など）を記載。非機能要件は ../02_requirements/non-function-list.md を参照 -->
+- **Architecture style:** Single containerised REST API service (extracted from a former monolith).
+- **Runtime:** Kubernetes, image published to Harbor, deployed via the Helm chart in
+  `deploy/charts/cv-matching`.
+- **Design principles:**
+  - **Clean architecture.** Business rules sit in `domain/`, free of FastAPI, Azure and LiteLLM. All
+    external systems are reached through ports, so the OCR backend or the LLM provider can be swapped
+    without touching scoring logic.
+  - **Stateless.** No database and no session state; every request is self-contained. Scaling is
+    horizontal, and any replica can serve any request.
+  - **Explainable scoring.** Each criterion returns its own score, weight and written justification.
+    The API never returns a total it cannot account for.
+  - **Degrade rather than fail.** The narrative insights call is allowed to fail into a warning,
+    because the scores it summarises are already computed and are the substance of the report. A
+    criterion scoring failure is *not* degraded — Skills alone carries 40%, so a silent 0 would read
+    as a genuine rejection.
 
-- **アーキテクチャ方式:** [例: モノリシック構成 / マイクロサービス構成 / サーバーレス構成]
-- **実行環境:** [例: AWS 上のコンテナ構成（ECS Fargate） / オンプレミス / ハイブリッド]
-- **設計方針:**
-  - [例: 将来のトラフィック増加に耐えられるよう水平スケール可能な構成にする]
-  - [例: クライアントの既存システムとの連携を前提とし、認証は既存の IdP に統合する]
-
-## 2. システム構成図
-
-<!-- Mermaid 等でシステム全体の構成図（フロントエンド／バックエンド／データベース／外部サービスの関係）を記載 -->
+## 2. System diagram
 
 ```mermaid
 flowchart LR
     subgraph Client
-        A[Webブラウザ / モバイルApp]
+        A[HR / recruiting frontend]
     end
-    subgraph Frontend
-        B[フロントエンドアプリ]
+    subgraph Cluster["Kubernetes cluster"]
+        B[Ingress<br/>strips /ai]
+        C[CV Matching API<br/>FastAPI + uvicorn]
     end
-    subgraph Backend
-        C[APIサーバー]
-        D[(データベース)]
-    end
-    subgraph External
-        E[外部サービス]
+    subgraph External["External services"]
+        D[Azure Document<br/>Intelligence]
+        E[LiteLLM proxy<br/>Gemini]
     end
 
-    A --> B --> C --> D
-    C --> E
+    A -->|POST /ai/cv-matching/api/v1/match| B
+    B --> C
+    C -->|OCR the CV| D
+    C -->|extraction + 6 scorers + insights| E
 ```
 
-## 3. 主要コンポーネント構成
+## 3. Components
 
-<!-- 本プロジェクトで開発・運用する主要なシステムコンポーネントを記載。各コンポーネントの役割と、それを実現する主要技術スタックを明記する -->
-
-| 区分 | コンポーネント名 | 概要・役割 | 主要技術スタック |
+| Category | Component | Role | Technology |
 | --- | --- | --- | --- |
-| フロントエンド | | <!-- 例: 利用者向け Web 画面。SPA として提供 --> | <!-- 例: React 18 / TypeScript / Vite --> |
-| バックエンド・API | | <!-- 例: 業務ロジックを提供する REST API サーバー --> | <!-- 例: Node.js / NestJS / TypeScript --> |
-| データベース | | <!-- 例: 業務データの永続化。詳細は database.md 参照 --> | <!-- 例: PostgreSQL 16 --> |
-| バッチ・非同期処理 | | <!-- 例: 夜間集計、メール送信などの非同期ジョブ --> | <!-- 例: AWS Lambda / SQS --> |
-| インフラ・実行環境 | | <!-- 例: 各コンポーネントのホスティング・コンテナ運用 --> | <!-- 例: AWS ECS Fargate / Terraform --> |
-| CI/CD | | <!-- 例: ビルド・テスト・デプロイの自動化 --> | <!-- 例: GitHub Actions --> |
+| API | CV Matching API | Extracts CVs and scores them against a JD | Python 3.13 / FastAPI / uvicorn |
+| Domain | Criterion scorers | Six independent prompt-based scorers | Pydantic structured output |
+| Domain | Resume profile | Pure functions: experience arithmetic, prompt rendering | Python stdlib |
+| Infrastructure | Document parser adapter | CV file → plain text | Azure Document Intelligence SDK |
+| Infrastructure | LLM adapter | Structured output calls | langchain-openai → LiteLLM |
+| Infrastructure | DI container | Wires ports to adapters | dependency-injector |
+| Observability | Metrics | Prometheus scrape endpoint | prometheus-client |
+| CI/CD | Build and publish | Image to Harbor, chart to OCI registry | GitHub Actions / docker bake / Helm |
 
-## 4. 外部サービス・サードパーティ連携
+There is **no database and no batch processing.** Every request is synchronous and self-contained.
 
-<!-- 自社で開発しない、外部の SaaS / API / サービスを記載。契約・料金プランが発生するものはクライアントとの合意事項として明記する -->
+## 4. External services
 
-| サービス名 | 提供元 | 用途・概要 | 連携方式 | プラン・料金 |
+| Service | Provider | Purpose | Integration | Notes |
 | --- | --- | --- | --- | --- |
-| | | <!-- 例: メール配信基盤として利用 --> | <!-- 例: REST API / SDK --> | <!-- 例: 従量課金プラン --> |
-| | | <!-- 例: 決済処理基盤として利用 --> | <!-- 例: REST API / Webhook --> | <!-- 例: 決済額の X% --> |
-| | | <!-- 例: 認証基盤（IdP）として利用 --> | <!-- 例: OAuth2.0 / SAML --> | <!-- 例: 月額固定プラン --> |
+| Document Intelligence | Microsoft Azure | OCR of PDF / DOCX / image CVs (`prebuilt-read`) | REST via SDK | Consumption billing; region defaults to `japaneast` |
+| LiteLLM proxy | Sun\* internal (`llm.sun-asterisk.ai`) | Extraction, 6 criterion scorers, insights | OpenAI-compatible REST | Behind Cloudflare with a 120s read timeout |
 
-## 5. 技術スタック一覧（サマリ）
+**Per request:** 1 Azure DI call, then 1 extraction call, then 6 concurrent scoring calls, then 1
+insights call — 8 LLM calls total for a full match. A request without `jd_text` makes only 1.
 
-<!-- 3・4 で挙げた技術要素をレイヤー単位で総覧できるように整理し、選定理由を明記する。クライアントへの技術選定の説明資料としても利用できる -->
+## 5. Technology choices
 
-| レイヤー | 技術・製品 | バージョン | 選定理由 |
+| Layer | Technology | Version | Why |
 | --- | --- | --- | --- |
-| フロントエンド | | | <!-- 例: チームの習熟度が高く、開発速度を優先 --> |
-| バックエンド | | | |
-| データベース | | | |
-| インフラ・クラウド | | | |
-| 認証・認可 | | | |
-| 監視・ログ | | | |
+| Language | Python | 3.13 | Matches the team's other AI services; ecosystem for LLM/document tooling |
+| Web framework | FastAPI | 0.115+ | Async, and generates the OpenAPI contract the frontend consumes |
+| Validation | Pydantic | v2 | The same models validate the API and act as the LLM structured-output schema, so the two can never drift |
+| DI | dependency-injector | 4.42+ | Keeps adapters out of the domain and makes the use case testable with fakes |
+| OCR | Azure Document Intelligence | 1.0.2+ | Reads PDF, DOCX and images directly, so no conversion step is needed |
+| LLM access | langchain-openai | 1.1.7+ | `with_structured_output` maps responses onto Pydantic models |
+| Model | gemini-3.1-flash-lite-preview | — | Only model of six benchmarked that reproduces a score exactly on re-run; 3× faster at p50, 15× at p90 than gemini-3-flash-preview |
+| Packaging | uv + hatchling | — | Fast, reproducible container builds |
 
-## 6. 制約条件・前提条件
+## 6. Constraints and assumptions
 
-<!-- 技術的制約（既存システムとの互換性、クライアント側で指定された技術・ベンダー等）、予算・リソースの制約、外部システム連携の前提条件を記載 -->
+- Azure Document Intelligence and LiteLLM credentials must be provisioned before deployment; the
+  service validates them at startup and refuses to start without them.
+- The LiteLLM proxy sits behind a 120s Cloudflare read timeout. The client timeout is deliberately set
+  to 90s so a slow call fails as our timeout — which the retry logic can act on — rather than an
+  opaque 524.
+- The Azure SDK is synchronous; OCR runs on a worker thread so it cannot block the event loop.
+- Uploaded CVs are written to a temporary file, read once, and deleted in a background task after the
+  response is sent. Nothing is persisted.
+- Requests are authenticated with a single shared API key (`X-API-Key`), compared in constant time.
+  There is no per-user identity in this service.
 
--
+## 7. Revision history
 
-## 7. 改訂履歴
-
-| 日付 | 更新者 | 内容 |
+| Date | Author | Change |
 | --- | --- | --- |
-| | | |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

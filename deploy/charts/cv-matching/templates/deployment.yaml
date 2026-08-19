@@ -1,0 +1,37 @@
+{{- $args := dict
+  "checksumAnnotations" (dict
+    "envSecret" "secret.yaml"
+  )
+  "container" (dict
+    "name" "cv-matching"
+    "ports" (dict
+      "http" 8000
+    )
+    "envVarsSecrets" (list
+      (dict "nameTemplate" "%s")
+    )
+    "livenessProbe" (dict
+      "enabled" true
+      "httpGet" (dict
+        "path" (printf "%s/health" .Values.app.servicePrefix)
+        "port" "http"
+      )
+      "initialDelaySeconds" 30
+      "periodSeconds" 30
+      "timeoutSeconds" 10
+    )
+    "readinessProbe" (dict
+      "enabled" true
+      "httpGet" (dict
+        "path" (printf "%s/ready" .Values.app.servicePrefix)
+        "port" "http"
+      )
+      "initialDelaySeconds" 10
+      "periodSeconds" 10
+      "timeoutSeconds" 5
+    )
+  )
+  "serviceAccount" .Values.serviceAccount
+-}}
+
+{{ include "tplchart.deployment" (dict "context" . "Args" $args) }}

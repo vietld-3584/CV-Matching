@@ -20,3 +20,32 @@
 credentials.json
 service-account-key.json
 *-service-account*.json
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# Testing / type checking caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+### Helm ###
+# Dependency archives are rebuilt by `helm dependency build`; Chart.lock is committed
+deploy/charts/**/charts/
+
+### Logs / temp ###
+*.log
+*.tmp

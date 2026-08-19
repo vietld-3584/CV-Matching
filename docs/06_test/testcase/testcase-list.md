@@ -1,38 +1,93 @@
-# テストケース一覧
+# Test Case List
 
-> 本ドキュメントは、結合テスト（IT）・システムテスト（ST）・受入テスト（UAT）で実施する手動テストケースの一覧と、その実施状況を管理するための集約ビューです。単体テスト（UT）は自動テストコードで実施するため対象外です。
-> 本ファイルは実施状況・実施結果・実施者・実施日を都度更新する動的な管理台帳です。テストケースの内容（手順・期待結果・前提条件）は、機能・画面などのモジュール単位で [`testcase-1-xxx-yyy.md`](./testcase-1-xxx-yyy.md) を複製して `testcase-{No}-{モジュール名}.md` として作成してください。1モジュールにつき1ファイルとし、そのモジュールに属する複数のテストケースをまとめて記載します（下表のように複数行が同じ詳細ドキュメントを共有することがあります）。作成後は本ファイルからリンクしてください。
-> テスト方針・合否基準は [`../test-plan.md`](../test-plan.md)、対象機能は [`../../02_requirements/function-list.md`](../../02_requirements/function-list.md) を参照してください。発見した不具合は [`../../01_management/risks-problems/problem-list.md`](../../01_management/risks-problems/problem-list.md) に登録してください。
+> Automated cases in `tests/test_match_cv.py`. Strategy:
+> [`../test-plan.md`](../test-plan.md). Run with `pytest -q`.
 
-## 1. テストケース一覧
+## 1. Weighting (F-005)
 
-<!-- 新しいテストケースが発生した際は都度追加してください。IDは追加後も変更せず、削除する場合も欠番として残してください -->
-
-| ID | テストレベル | 対象機能ID（function-list.md） | テストケース名 | 優先度 | 実施状況 | 実施結果 | 実施者 | 実施日 | 詳細ドキュメント | 更新日 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-001 | IT | <!-- 例: F-001 --> | <!-- 例: 会員登録（正常系） --> | 必須 | 未着手 | | | | [testcase-1-xxx-yyy.md](./testcase-1-xxx-yyy.md) | |
-| TC-002 | IT | <!-- 例: F-001 --> | <!-- 例: 会員登録（異常系） --> | 必須 | 未着手 | | | | [testcase-1-xxx-yyy.md](./testcase-1-xxx-yyy.md) | |
-
-## 2. ステータス定義
-
-**実施状況**
-
-| ステータス | 内容 |
-| --- | --- |
-| 未着手 | まだテストを実施していない |
-| 実施中 | テストを実施中である |
-| 完了 | テストを実施し、結果（OK/NG）が確定している |
-| 保留 | 環境未整備・仕様未確定等の理由で実施を保留している |
-
-**実施結果**
-
-| 結果 | 内容 |
-| --- | --- |
-| OK | 期待結果通りの挙動を確認できた（合格） |
-| NG | 期待結果と異なる挙動を確認した（不合格）。[`../../01_management/risks-problems/problem-list.md`](../../01_management/risks-problems/problem-list.md) に問題を登録すること |
-
-## 3. 改訂履歴
-
-| 日付 | 更新者 | 内容 |
+| ID | Case | Expected |
 | --- | --- | --- |
-| | | |
+| TC-001 | Default weighting | Matches `DEFAULT_WEIGHTS`, sums to 100 |
+| TC-002 | Partial override rescaled | Untouched criteria keep relative weighting; total stays 100 |
+| TC-003 | Location defaults to zero | `location` weight is 0 |
+| TC-004 | Location can be weighted back up | Cross-region hiring override works; total stays 100 |
+| TC-005 | A criterion can be switched off | Setting a weight to 0 is accepted; total stays 100 |
+| TC-006 | Misspelled criterion rejected | `InvalidWeightsError`, not silently ignored |
+| TC-007 | Negative weight / all-zero set rejected | `InvalidWeightsError` (parametrised, 2 cases) |
+
+## 2. Experience arithmetic (F-002)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-010 | End month counts as worked | 2024-01 → 2024-12 is 1.0 year |
+| TC-011 | Overlapping roles counted once | A day job plus a concurrent contract is 1.0 year, not 2.0 |
+| TC-012 | Separate periods summed | Two distinct years total 2.0 |
+| TC-013 | "Present" read as today | Ongoing role measured to the current month |
+| TC-014 | Undatable entries skipped | Unparseable dates contribute 0.0, never a guess (parametrised, 2 cases) |
+| TC-015 | Latest title by date, not list order | Returns the most recent role even when the CV is out of order |
+
+## 3. Skills and prompt rendering (F-002, F-003)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-020 | Listed and mentioned skills merged | Skills named only inside an achievement are collected; no duplicates |
+| TC-021 | Projects section read for skills | Tech stack from a dedicated projects section reaches the scorer |
+| TC-022 | Projects prompt covers both sources | Job history and projects section both rendered |
+| TC-023 | Projects reported without job history | A fresher's projects still appear |
+| TC-024 | Neither present | Explicit "no work experience or projects" message |
+| TC-025 | Every achievement kept | No cap — capping hid technologies from the skills scorer |
+
+## 4. Use case orchestration (F-003, F-004, F-006, F-008)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-030 | Full match | All six criteria scored, total and recommendation produced |
+| TC-031 | Custom weights applied | `match_score` reflects the overridden weighting |
+| TC-032 | Bad weights rejected before any LLM call | Raises without spending a call |
+| TC-033 | No JD → extraction only | `cv_data` returned, `matching` is `None` |
+| TC-034 | Blank JD read as no JD | Whitespace-only `jd_text` behaves as absent |
+| TC-035 | Bad weights rejected even without a JD | A typo is reported, not silently accepted |
+| TC-036 | Extraction-only still reports gaps | Missing-work-history warning survives |
+| TC-037 | Empty CV rejected | `MatchCvError` when OCR yields nothing |
+| TC-038 | Warning when no work experience | Warning added to the result |
+
+## 5. Failure handling (NFR-014)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-040 | Criterion scorer fails | Fails loudly — never scored as 0, which would read as a genuine rejection |
+| TC-041 | Insights call fails | Scores preserved, downgraded to a warning |
+
+## 6. On-site conflict (F-007)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-050 | Conflict blocks automatic shortlist | SHORTLIST downgraded to REVIEW_CAREFULLY with a warning |
+| TC-051 | Matching location leaves shortlist alone | No downgrade when locations agree |
+| TC-052 | Conflict does not promote a weak candidate | A REJECT is not lifted to REVIEW_CAREFULLY |
+| TC-053 | Reason ignores zero-weight criteria | Only criteria that affect the score are cited |
+
+## 7. API contract (F-001, F-004)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-060 | Result serialises to the response DTO | `MatchingResultDTO` validates from the domain result |
+| TC-061 | Extracted CV serialises with every section | All sections survive the DTO boundary |
+
+## 8. Manual verification
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| TC-070 | Missing API key | `401` |
+| TC-071 | Invalid API key | `401` |
+| TC-072 | Unsupported file type | `400` listing allowed types |
+| TC-073 | Empty file upload | `400` |
+| TC-074 | Malformed `weights` JSON | `400` with an example |
+| TC-075 | Real CV + JD against live services | `200` with a plausible, explained score |
+| TC-076 | Health / readiness / metrics | `200` on all three |
+
+## 9. Revision history
+
+| Date | Author | Change |
+| --- | --- | --- |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

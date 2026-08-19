@@ -1,0 +1,26 @@
+name: Publish Chart
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Package and push helm chart
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Registry login
+        run: |
+          echo '${{ secrets.HARBOR_PASSWORD }}' | helm registry login harbor.sun-asterisk.vn \
+            --username '${{ secrets.HARBOR_USERNAME }}' --password-stdin
+
+      - name: Package and push
+        run: |
+          helm dependency build deploy/charts/cv-matching
+          helm package deploy/charts/cv-matching -d "$RUNNER_TEMP"
+          helm push "$RUNNER_TEMP"/cv-matching-*.tgz oci://harbor.sun-asterisk.vn/dps/helm-charts

@@ -1,19 +1,34 @@
-# 機能一覧
+# Function List
 
-> 本ドキュメントは、本システムで提供する機能の一覧と、その優先度・対応状況を管理するための集約ビューです。
-> 個々の機能の詳細仕様（業務フロー・入出力・業務ルール等）は [`functions/`](./functions/function-1-xxx-yyy.md) 配下に機能ごとのファイルを作成し、本ファイルからリンクしてください。本一覧が本システムの対象範囲（スコープ）を表します。
-> **プロジェクトクロージング時には、本一覧の「関連WBS ID」を [`../01_management/schedule.md`](../01_management/schedule.md) と対応付け、[`../01_management/define-of-done.md`](../01_management/define-of-done.md) の完了判定に用いてください。**
+> Functional scope of the CV Matching service. This list defines what the service covers.
+> API specifications: [`../03_system-design/api-design/api-list.md`](../03_system-design/api-design/api-list.md).
 
-## 1. 機能一覧
+## 1. Functions
 
-<!-- 新しい機能が発生した際は都度追加してください。IDは機能追加後も変更せず、削除する場合も欠番として残してください -->
+| ID | Function | Description | Priority | Status | Detail |
+| --- | --- | --- | --- | --- | --- |
+| F-001 | CV text extraction | OCR a PDF / DOCX / image CV into plain text via Azure Document Intelligence | Must | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-002 | Structured CV parsing | Parse the text into structured resume data: contact details, skills, education, work history, projects, tags | Must | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-003 | Criterion scoring | Score the candidate on six criteria against a JD, concurrently, each with its own explanation | Must | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-004 | Weighted total and recommendation | Combine criterion scores into a 0–100 total and a SHORTLIST / REVIEW_CAREFULLY / REJECT recommendation | Must | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-005 | Custom weighting | Accept per-request weight overrides, rescaled to 100%, with unknown keys rejected | Must | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-006 | Insight generation | Produce a summary, strengths, gaps and matched keywords from the CV, JD and scores | Should | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-007 | On-site conflict detection | Flag a genuine location conflict and downgrade an automatic SHORTLIST | Should | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-008 | Extraction-only mode | Return the parsed CV without scoring when no JD is supplied | Must | Done | [API-001](../03_system-design/api-design/api-1-match-cv.md) |
+| F-009 | API key authentication | Validate `X-API-Key` in constant time | Must | Done | [api-list.md](../03_system-design/api-design/api-list.md) |
+| F-010 | Health, readiness, metrics | Probe endpoints and Prometheus metrics | Must | Done | [api-list.md](../03_system-design/api-design/api-list.md) |
 
-| ID | 機能名 | 概要 | 優先度 | 対象ロール（role-list.md） | 関連WBS ID | 詳細ドキュメント | 更新日 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| F-001 | <!-- 例: 会員登録 --> | <!-- 例: メールアドレスとパスワードで新規会員登録を行う --> | 必須 | <!-- 例: ROLE-001 --> | <!-- 例: E-02-S01 --> | [function-1-xxx-yyy.md](./functions/function-1-xxx-yyy.md) | |
+## 2. Out of scope
 
-## 2. 改訂履歴
+| Item | Note |
+| --- | --- |
+| Candidate data storage | The service is stateless; uploaded files are deleted after the response. Persistence is the caller's responsibility |
+| Ranking across candidates | One CV per request. Comparing candidates is done by the caller |
+| Automatic rejection | `REJECT` is a recommendation for a human, never an automated decision |
+| Interview scheduling / ATS integration | Handled by the hiring system |
 
-| 日付 | 更新者 | 内容 |
+## 3. Revision history
+
+| Date | Author | Change |
 | --- | --- | --- |
-| | | |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

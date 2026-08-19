@@ -1,0 +1,38 @@
+.git
+.github
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Testing / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+tests/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Docs and project scaffolding - not needed in the image
+docs/
+docs_old/
+deploy/
+scripts/
+.claude/
+*.md
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

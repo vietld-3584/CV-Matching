@@ -1,0 +1,98 @@
+global:
+  imagePullSecrets: []
+
+image:
+  registry: harbor.sun-asterisk.vn
+  repository: dps/s-staff-docs/ai/cv-matching
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Azure Document Intelligence - reads the uploaded CV
+azure:
+  endpoint: ""
+  region: "japaneast"
+  key: ""
+
+# LiteLLM service used for extraction, the six criterion scorers, and the insights call.
+# gemini-3.1-flash-lite-preview was the only model of six benchmarked that returns an
+# identical score when the same CV is re-scored, and it is 3x faster at p50 / 15x at p90
+# than gemini-3-flash-preview, which also timed out on 10% of CVs. Timeout sits under the
+# proxy's 120s Cloudflare cut-off so a slow call surfaces as our timeout, not a 524.
+litellm:
+  url: "https://llm.sun-asterisk.ai/v1"
+  apiKey: ""
+  model: "gemini-3.1-flash-lite-preview"
+  timeout: "90"
+  maxRetries: "2"
+  reasoningEffort: ""
+
+# Authentication - value clients must send in the X-API-Key header
+auth:
+  apiKey: ""
+
+# Route the service is served under. root_path is the prefix the ingress strips
+# before forwarding; the app itself serves <servicePrefix>/... unprefixed.
+app:
+  rootPath: "/ai"
+  servicePrefix: "/cv-matching"
+  apiPrefix: "/api/v1"
+  environment: "production"
+
+replicaCount: 1
+
+updateStrategy:
+  type: RollingUpdate
+
+service:
+  type: ClusterIP
+  labels: {}
+  annotations: {}
+  ports:
+    http: 8000
+  nodePorts:
+    http: ""
+  clusterIP: ""
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: Cluster
+  sessionAffinity:
+
+podAffinityPreset: ""
+podAntiAffinityPreset: "soft"
+
+nodeAffinityPreset:
+  type: ""
+  key: ""
+  values: []
+
+affinity: {}
+nodeSelector: {}
+tolerations: []
+topologySpreadConstraints: []
+
+podSecurityContext:
+  enabled: true
+  fsGroup: 1000
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+resources:
+  limits: {}
+  requests: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hostname: cv-matching.local
+  path: /ai/cv-matching
+  pathType: ImplementationSpecific
+  tls: false
+
+serviceAccount:
+  create: false

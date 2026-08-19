@@ -1,43 +1,54 @@
-# プロジェクト概要
+# Project Overview
 
-> 本ドキュメントは、本プロジェクトで開発するサービス・システムの業務・製品要件としての概要をまとめたものです。プロジェクトマネジメント観点（契約・体制・進め方）の概要は [`../01_management/overview.md`](../01_management/overview.md) を参照してください。
-> AIエージェントは、本ファイルを読み込むことで対象サービスの背景・課題・提供価値を把握し、機能一覧・非機能要件・画面設計等の検討に活用してください。利用者像は [`role-list.md`](./role-list.md)、業務用語は [`glossary.md`](./glossary.md) を参照してください。
+> Business and product overview of the CV Matching service. Roles: [`role-list.md`](./role-list.md).
+> Terminology: [`glossary.md`](./glossary.md). Scope: [`function-list.md`](./function-list.md).
 
-## 1. サービス概要
+## 1. Service summary
 
-| 項目 | 内容 |
+| Item | Detail |
 | --- | --- |
-| サービス名 | |
-| 対象プラットフォーム | <!-- 例: Web / iOS / Android / 業務システム(社内向け) など --> |
-| プロジェクト概要 | <!-- 例: 〇〇業界の△△業務を効率化するSaaS --> |
+| Service name | CV Matching API |
+| Platform | Internal backend service (REST API), consumed by the hiring frontend |
+| Summary | Extracts structured data from candidate CVs and scores them against a job description on six weighted, individually explained criteria |
 
-## 2. 背景・課題
+## 2. Background and problem
 
-<!-- なぜこのサービス・システムが必要とされているか。現状の業務・システムの課題を記載 -->
+- **As-Is:** Recruiters read every incoming CV by hand to decide who moves to interview. For a single
+  posting that can mean dozens of CVs in inconsistent formats — PDF, DOCX, scanned images — in
+  Vietnamese and English, with the strongest evidence often buried in a projects section rather than
+  the job history.
+- **Problem:** Screening is slow and inconsistent. Two recruiters shortlist differently from the same
+  CV, and there is no record of *why* a candidate was passed over.
+- **Cost of inaction:** Screening stays the bottleneck in the hiring funnel, strong candidates are
+  missed through fatigue or formatting, and shortlisting decisions cannot be audited or improved.
 
-- **現状（As-Is）:** [現行業務・システムの状況]
-- **課題:** [現状で発生している問題・非効率]
-- **課題を放置した場合の影響:** [ビジネスへの影響]
+## 3. Purpose and value
 
-## 3. 目的・提供価値
+- **Purpose:** Give recruiters a consistent, defensible first-pass ranking of candidates against a
+  job description, with the reasoning attached.
+- **Value:**
+  - **Speed.** Six criteria are scored concurrently, so a full match returns in seconds rather than
+    the minutes a careful manual read takes.
+  - **Consistency.** The same CV and JD produce the same score on re-run — the model was chosen
+    specifically for that property.
+  - **Explainability.** Every criterion carries its own score, weight and written justification. The
+    service is a screening aid that shows its work, not an automatic reject switch.
+  - **Adjustability.** Teams can re-weight criteria per role without a code change or redeploy.
+- **Deliberate limits.** The service ranks and explains; a human decides. `REJECT` is a
+  recommendation, never an automated rejection.
 
-- **目的:** [このシステムが達成すること]
-- **提供価値（Value Proposition）:** [利用者にとっての価値]
-- **成功基準・KPI:** 詳細は [`../01_management/overview.md`](../01_management/overview.md) の「2. プロジェクトKPI・成功基準」を参照
+## 4. Related documents
 
-## 4. 関連ドキュメント
-
-| ドキュメント | 内容 |
+| Document | Content |
 | --- | --- |
-| [`../01_management/overview.md`](../01_management/overview.md) | プロジェクトマネジメント観点の概要（契約・体制・進め方） |
-| [`function-list.md`](./function-list.md) | 機能一覧（対象範囲・スコープ） |
-| [`non-function-list.md`](./non-function-list.md) | 非機能要件一覧 |
-| [`role-list.md`](./role-list.md) | 利用者ロール一覧 |
-| [`glossary.md`](./glossary.md) | 用語集 |
-| [`business-flow.md`](./business-flow.md) | 業務フロー概要 |
+| [`function-list.md`](./function-list.md) | Functional scope |
+| [`non-function-list.md`](./non-function-list.md) | Non-functional requirements |
+| [`glossary.md`](./glossary.md) | Terminology |
+| [`../03_system-design/architecture.md`](../03_system-design/architecture.md) | System architecture |
+| [`../03_system-design/api-design/api-list.md`](../03_system-design/api-design/api-list.md) | API inventory |
 
-## 5. 改訂履歴
+## 5. Revision history
 
-| 日付 | 更新者 | 内容 |
+| Date | Author | Change |
 | --- | --- | --- |
-| | | |
+| 2026-08-19 | Le Duc Viet | Initial version, extracted from the `ai_erp_backend` monorepo |

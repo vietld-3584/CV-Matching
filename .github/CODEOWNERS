@@ -1,25 +1,29 @@
-# CODEOWNERS - sun-ai-ready-sdlc
+# CODEOWNERS - CV-Matching
 #
-# このファイルは、リポジトリの各部分に対するコードオーナーを定義します。
-# PRが作成されると、該当するオーナーが自動的にレビュアーとして割り当てられます。
+# Owners listed here are automatically requested for review on pull requests
+# touching the matching paths.
 #
-# 詳細: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# デフォルトオーナー - 全てのファイルに適用
-* @sun-asterisk-internal/ai-ready-sdlc-maintainers
+# Default owner for everything
+* @vietld-3584
 
-# ドキュメント
-/docs/ @sun-asterisk-internal/ai-ready-sdlc-maintainers
-/*.md @sun-asterisk-internal/ai-ready-sdlc-maintainers
+# Application code
+/cv_matching/ @vietld-3584
+/main.py @vietld-3584
+/tests/ @vietld-3584
 
-# テンプレート - Web Development
-/templates/web-development/ @sun-asterisk-internal/ai-ready-sdlc-maintainers
+# Packaging and deployment
+/Dockerfile @vietld-3584
+/docker-bake.hcl @vietld-3584
+/deploy/ @vietld-3584
 
-# テンプレート - Mobile Development
-/templates/mobile-development/ @sun-asterisk-internal/ai-ready-sdlc-maintainers
+# Documentation
+/docs/ @vietld-3584
+/*.md @vietld-3584
 
-# GitHub設定（ワークフロー、Issue/PRテンプレート等）
-/.github/ @sun-asterisk-internal/ai-ready-sdlc-maintainers
+# GitHub configuration (workflows, issue/PR templates)
+/.github/ @vietld-3584
 
-# Claude Code設定
-/.claude/ @sun-asterisk-internal/ai-ready-sdlc-maintainers
+# Claude Code configuration
+/.claude/ @vietld-3584

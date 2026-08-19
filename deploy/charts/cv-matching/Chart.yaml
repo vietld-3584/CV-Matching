@@ -1,0 +1,13 @@
+apiVersion: v2
+name: cv-matching
+description: CV Matching API - evidence-backed CV extraction and CV/JD matching service
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: tplchart
+    repository: oci://ghcr.io/sun-asterisk-research/helm-charts
+    version: 0.6.0
+  - name: common
+    repository: oci://ghcr.io/sun-asterisk-research/helm-charts
+    version: 1.3.1
